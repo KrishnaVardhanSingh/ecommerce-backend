@@ -14,5 +14,5 @@ import lombok.Setter;
 public class InventoryModificationRequest {
     @NotNull
     @Min(1)
-    private Long quantity;
+    private int quantity;
 }

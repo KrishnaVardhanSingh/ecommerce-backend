@@ -1,5 +1,6 @@
 package krishna.ecommerce.services;
 
+import jakarta.transaction.Transactional;
 import krishna.ecommerce.dto.inventory.InventoryModificationRequest;
 import krishna.ecommerce.dto.inventory.InventoryModificationResponse;
 import krishna.ecommerce.dto.inventory.InventoryRequest;
@@ -67,18 +68,25 @@ public class InventoryService {
     }
 
     // decreasing the stock
+    @Transactional
     public InventoryModificationResponse decreaseStock(
             InventoryModificationRequest request,
             Long id
     ){
-        Inventory inventory = inventoryRepository.findById(id).orElseThrow(() ->
-                new InventoryDoesNotExistException("Product with this id does not exist in Inventory"));
+//        Inventory inventory = inventoryRepository.findById(id).orElseThrow(() ->
+//                new InventoryDoesNotExistException("Product with this id does not exist in Inventory"));
 
-        if(request.getQuantity() > inventory.getQuantity()){
-            throw new QuantityMisMatchException("Enter Valid Quantity");
+//        if(request.getQuantity() > inventory.getQuantity()){
+//            throw new QuantityMisMatchException("Enter Valid Quantity");
+//        }
+//        inventory.setQuantity(inventory.getQuantity() - request.getQuantity());
+
+        // Race condition handled
+        int rowModified = inventoryRepository.decreaseStockAtomically(id, request.getQuantity());
+
+        if(rowModified == 0){
+            throw new QuantityMisMatchException("Insufficient Stock");
         }
-        inventory.setQuantity(inventory.getQuantity() - request.getQuantity());
-        inventoryRepository.save(inventory);
         return new InventoryModificationResponse("Product decreased successfully");
     }
 

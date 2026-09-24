@@ -1,12 +1,15 @@
 package krishna.ecommerce.exception;
 
 import krishna.ecommerce.exception.cart.CartNotFound;
+import krishna.ecommerce.exception.cart.EmptyCart;
 import krishna.ecommerce.exception.cart.UserNotFound;
 import krishna.ecommerce.exception.inventory.InventoryAlreadyExistsException;
 import krishna.ecommerce.exception.inventory.InventoryDoesNotExistException;
 import krishna.ecommerce.exception.inventory.QuantityMisMatchException;
+import krishna.ecommerce.exception.order.InvalidCancellation;
 import krishna.ecommerce.exception.product.DuplicateProduct;
 import krishna.ecommerce.exception.product.InvalidSortingParameter;
+import krishna.ecommerce.exception.order.OrderNotFound;
 import krishna.ecommerce.exception.product.ProductNotFoundException;
 import krishna.ecommerce.exception.user.EmailAlreadyExist;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +21,51 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(InvalidCancellation.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCancellationException(
+            InvalidCancellation e
+    ){
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setErrors(
+                List.of(e.getMessage())
+        );
+
+        errorResponse.setTimestamp(System.currentTimeMillis());
+        errorResponse.setStatus(400);
+
+        return ResponseEntity.status(400).body(errorResponse);
+    }
+
+    @ExceptionHandler(OrderNotFound.class)
+    public ResponseEntity<ErrorResponse> handleOrderNotFoundException(
+            OrderNotFound e
+    ){
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setErrors(
+                List.of(e.getMessage())
+        );
+
+        errorResponse.setTimestamp(System.currentTimeMillis());
+        errorResponse.setStatus(404);
+
+        return ResponseEntity.status(404).body(errorResponse);
+    }
+
+    @ExceptionHandler(EmptyCart.class)
+    public ResponseEntity<ErrorResponse> handleEmptyCartExistException(
+            EmptyCart e
+    ){
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setErrors(
+                List.of(e.getMessage())
+        );
+
+        errorResponse.setTimestamp(System.currentTimeMillis());
+        errorResponse.setStatus(404);
+
+        return ResponseEntity.status(404).body(errorResponse);
+    }
 
     @ExceptionHandler(CartNotFound.class)
     public ResponseEntity<ErrorResponse> handleCartNotFoundExistException(
