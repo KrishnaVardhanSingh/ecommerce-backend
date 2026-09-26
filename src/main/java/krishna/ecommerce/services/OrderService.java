@@ -20,6 +20,7 @@ import krishna.ecommerce.repository.UserRepository;
 import krishna.ecommerce.utility.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -49,12 +50,12 @@ public class OrderService {
 
     // create order
     @Transactional
-    public OrderResponseDto createOrder(Long userId){
-        User user = userRepository.findById(userId).orElseThrow(()->{
+    public OrderResponseDto createOrder(String email){
+        User user = userRepository.findByEmail(email).orElseThrow(()->{
             return new UserNotFound("User not found");
         });
 
-        Cart cart = cartRepository.findByUserId(userId).orElseThrow(()->{
+        Cart cart = cartRepository.findByUserId(user.getId()).orElseThrow(()->{
             return new CartNotFound("Cart not found");
         });
 
@@ -109,29 +110,42 @@ public class OrderService {
 
 
     // getting the order of a user by order id
-    public OrderDetailsResponse getOrderById(Long orderId){
+    public OrderDetailsResponse getOrderById(Long orderId, String email){
 //        User user = userRepository.findById(userId).orElseThrow(() ->
 //                new UserNotFound("User not found"));
 
         Order order = orderRepository.getOrderById(orderId).orElseThrow(() ->
                 new OrderNotFound("Order not found"));
 
+        User user = userRepository.findByEmail(email).orElseThrow(() ->
+                new UserNotFound("User not found"));
+
+        if(!order.getUser().getId().equals(user.getId())){
+            throw new OrderNotFound("Order does not exist");
+        }
+
         return orderDtoMapping(order);
     }
 
     // canceling an order
     @Transactional
-    public OrderDetailsResponse cancelOrder(Long orderId){
+    public OrderDetailsResponse cancelOrder(Long orderId, String email){
+        User user = userRepository.findByEmail(email).orElseThrow(() ->
+                new UserNotFound("User not found"));
+
+        Order order = orderRepository.getOrderById(orderId)
+                .orElseThrow(() ->
+                        new OrderNotFound("Order with id " + orderId + " not found"));
+
+        if(!order.getUser().getId().equals(user.getId())){
+            throw new InvalidCancellation("Invalid cancelation request");
+        }
 
         int rowAffectedInOrderTable = orderRepository.cancelOrder(orderId);
 
         if (rowAffectedInOrderTable == 0) {
             throw new InvalidCancellation("Invalid cancellation request");
         }
-
-        Order order = orderRepository.getOrderById(orderId)
-                .orElseThrow(() ->
-                        new OrderNotFound("Order with id " + orderId + " not found"));
 
         // we are not storing the item level fulfillment status, so only one status is there for the whole order
         for(OrderItem orderItem : order.getOrderItems()){
@@ -180,24 +194,12 @@ public class OrderService {
 
 
     // getting order history in Page
-    public PageResponse<OrderSummaryResponse> getOrderHistoryByUserId(Long userId, Pageable pageable){
-        Page<Order> orders = orderRepository.findAllByUserId(userId, pageable);
+    public PageResponse<OrderSummaryResponse> getOrderHistoryByUserId(String email, Pageable pageable){
+        User user = userRepository.findByEmail(email).orElseThrow(() ->
+                new UserNotFound("User not found"));
+        Page<Order> orders = orderRepository.findAllByUserId(user.getId(), pageable);
 
-        List<OrderSummaryResponse> allOrder = mapOrderToRespones(orders);
-
-        return new PageResponse<>(
-                allOrder,
-                orders.getSize(),
-                orders.getNumber(),
-                orders.getTotalElements(),
-                orders.getTotalPages()
-        );
-    }
-
-    public PageResponse<OrderSummaryResponse> getOrderHistoryByUserId(Long userId, Pageable pageable, OrderStatus status){
-        Page<Order> orders = orderRepository.findByUserIdAndStatus(userId, pageable, status);
-
-        List<OrderSummaryResponse> allOrder = mapOrderToRespones(orders);
+        List<OrderSummaryResponse> allOrder = mapOrderToResponse(orders);
 
         return new PageResponse<>(
                 allOrder,
@@ -208,9 +210,25 @@ public class OrderService {
         );
     }
 
+    public PageResponse<OrderSummaryResponse> getOrderHistoryByUserId(String email, Pageable pageable, OrderStatus status){
+        User user = userRepository.findByEmail(email).orElseThrow(() ->
+                new UserNotFound("User not found"));
+        Page<Order> orders = orderRepository.findByUserIdAndStatus(user.getId(), pageable, status);
 
-    // create this method to remove repetative code
-    private List<OrderSummaryResponse> mapOrderToRespones(Page<Order> orders){
+        List<OrderSummaryResponse> allOrder = mapOrderToResponse(orders);
+
+        return new PageResponse<>(
+                allOrder,
+                orders.getSize(),
+                orders.getNumber(),
+                orders.getTotalElements(),
+                orders.getTotalPages()
+        );
+    }
+
+
+    // create this method to remove repetitive code
+    private List<OrderSummaryResponse> mapOrderToResponse(Page<Order> orders){
         return orders.map(
                 order ->
                         new OrderSummaryResponse(

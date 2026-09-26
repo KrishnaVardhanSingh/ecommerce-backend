@@ -10,6 +10,7 @@ import krishna.ecommerce.services.OrderService;
 import krishna.ecommerce.utility.PageResponse;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Pageable;
@@ -25,18 +26,20 @@ public class OrderController {
     }
 
     // create an order / checkout
-    @PostMapping("/{userId}")
-    public ResponseEntity<OrderResponseDto> createOrder(@PathVariable Long userId){
-        OrderResponseDto response = orderService.createOrder(userId);
+    @PostMapping
+    public ResponseEntity<OrderResponseDto> createOrder(Authentication authentication){
+
+        OrderResponseDto response = orderService.createOrder(authentication.getName());
         return ResponseEntity.status(201).body(response);
     }
 
     // get order by orderId
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderDetailsResponse> getOrderById(
-            @PathVariable Long orderId
+            @PathVariable Long orderId,
+            Authentication authentication
     ){
-        OrderDetailsResponse response = orderService.getOrderById(orderId);
+        OrderDetailsResponse response = orderService.getOrderById(orderId, authentication.getName());
         return ResponseEntity.status(200).body(response);
     }
 
@@ -44,9 +47,10 @@ public class OrderController {
     // cancel order
     @PatchMapping("/{orderId}/cancel")
     public ResponseEntity<OrderDetailsResponse> cancelOrder(
-            @PathVariable Long orderId
+            @PathVariable Long orderId,
+            Authentication authentication
     ){
-        OrderDetailsResponse response = orderService.cancelOrder(orderId);
+        OrderDetailsResponse response = orderService.cancelOrder(orderId, authentication.getName());
         return ResponseEntity.status(200).body(response);
     }
 
@@ -57,8 +61,8 @@ public class OrderController {
             "id",
             "status"
     );
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<PageResponse<OrderSummaryResponse>> getOrderHistory(@PathVariable Long userId,
+    @GetMapping
+    public ResponseEntity<PageResponse<OrderSummaryResponse>> getOrderHistory(Authentication authentication,
                                                                               Pageable pageable,
                                                                               @RequestParam(required = false) OrderStatus status){
         for(Sort.Order order : pageable.getSort()){
@@ -68,8 +72,11 @@ public class OrderController {
                         "Please give the valid sorting parameter");
             }
         }
+
+        String email = authentication.getName();
+
         if(status == null)
-            return ResponseEntity.ok(orderService.getOrderHistoryByUserId(userId, pageable));
-        return ResponseEntity.ok(orderService.getOrderHistoryByUserId(userId, pageable, status));
+            return ResponseEntity.ok(orderService.getOrderHistoryByUserId(email, pageable));
+        return ResponseEntity.ok(orderService.getOrderHistoryByUserId(email, pageable, status));
     }
 }

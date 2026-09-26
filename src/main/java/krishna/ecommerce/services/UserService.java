@@ -5,6 +5,7 @@ import krishna.ecommerce.dto.user.UserResponse;
 import krishna.ecommerce.entity.User;
 import krishna.ecommerce.exception.user.EmailAlreadyExist;
 import krishna.ecommerce.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import static krishna.ecommerce.entity.Role.ADMIN;
@@ -13,9 +14,12 @@ import static krishna.ecommerce.entity.Role.CUSTOMER;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository){
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder){
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // adding the user
@@ -29,7 +33,9 @@ public class UserService {
         user.setAge(request.getAge());
         user.setRole(CUSTOMER);
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
+
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        user.setPassword(encodedPassword);
 
         userRepository.save(user);
         return new UserResponse(user.getName() + " registered Successfully");

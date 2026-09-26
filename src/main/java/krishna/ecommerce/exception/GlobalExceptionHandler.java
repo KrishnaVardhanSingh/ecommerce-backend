@@ -22,6 +22,21 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(InvalidRefreshToken.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshTokenException(
+            InvalidRefreshToken e
+    ){
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setErrors(
+                List.of(e.getMessage())
+        );
+
+        errorResponse.setTimestamp(System.currentTimeMillis());
+        errorResponse.setStatus(401);
+
+        return ResponseEntity.status(401).body(errorResponse);
+    }
+
     @ExceptionHandler(InvalidCancellation.class)
     public ResponseEntity<ErrorResponse> handleInvalidCancellationException(
             InvalidCancellation e

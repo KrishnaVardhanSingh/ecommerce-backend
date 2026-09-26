@@ -11,6 +11,7 @@ import krishna.ecommerce.exception.inventory.InventoryDoesNotExistException;
 import krishna.ecommerce.exception.inventory.QuantityMisMatchException;
 import krishna.ecommerce.exception.product.ProductNotFoundException;
 import krishna.ecommerce.repository.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import javax.swing.text.html.Option;
@@ -41,9 +42,9 @@ public class CartService {
 
     // adding item to the cart
     public CartResponse addToCart(CartRequest request,
-                                  Long userId){
+                                  String email){
         // user check
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFound("User Not Found"));
 
         // product check
@@ -61,7 +62,7 @@ public class CartService {
 
 
         // cart check
-        Optional<Cart> optionalCart = cartRepository.findByUserId(userId);
+        Optional<Cart> optionalCart = cartRepository.findByUserId(user.getId());
         Cart cart = optionalCart.orElseGet(() ->{
             Cart newCart = new Cart();
             newCart.setUser(user);
@@ -102,16 +103,16 @@ public class CartService {
 
 
     // getting cart of the user
-    public CartDetailsResponse getCart(Long userId){
+    public CartDetailsResponse getCart(String email){
         // finding user
-        Optional<User> optionalUser = userRepository.findById(userId);
+        Optional<User> optionalUser = userRepository.findByEmail(email);
 
         User user = optionalUser.orElseThrow(() ->
             new UserNotFound("User Not Found")
         );
 
         // finding cart
-        Optional<Cart> optionalCart = cartRepository.findByUserId(userId);
+        Optional<Cart> optionalCart = cartRepository.findByUserId(user.getId());
         Cart cart = optionalCart.orElseThrow(() ->
                 new CartNotFound("Cart not found"));
 

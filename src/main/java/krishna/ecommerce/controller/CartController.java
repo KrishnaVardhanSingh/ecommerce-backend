@@ -6,6 +6,7 @@ import krishna.ecommerce.dto.cart.CartRequest;
 import krishna.ecommerce.dto.cart.CartResponse;
 import krishna.ecommerce.services.CartService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,16 +19,18 @@ public class CartController {
     }
 
     // adding a product to the cart
-    @PostMapping("/{userId}/items")
+    @PostMapping("/items")
     public ResponseEntity<CartResponse> addToCart(@RequestBody @Valid CartRequest request,
-                                                  @PathVariable Long userId){
-        CartResponse response = cartService.addToCart(request, userId);
+                                                  Authentication authentication){
+        CartResponse response = cartService.addToCart(request, authentication.getName());
         return ResponseEntity.status(201).body(response);
     }
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<CartDetailsResponse> getCart(@Valid @PathVariable Long userId){
-        CartDetailsResponse response = cartService.getCart(userId);
-        return ResponseEntity.status(200).body(response);
+    @GetMapping
+    public ResponseEntity<CartDetailsResponse> getCart(Authentication authentication){
+        CartDetailsResponse response = cartService.getCart(authentication.getName());
+        return ResponseEntity.ok(response);
     }
 }
+
+// But identity should come from authentication.
